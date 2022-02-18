@@ -1,16 +1,19 @@
 """first_impressions dataset."""
 
 import dataclasses
-from typing import Tuple
-import cv2
-import tensorflow_datasets as tfds
+import os
 import pickle
-import pandas as pd
-import numpy as np
-import tensorflow as tf
+from pathlib import Path
+from typing import Tuple
 
-import skvideo 
-skvideo.setFFmpegPath('/home/elyro2/personality-machine/ffmpeg-5.0-amd64-static')
+import cv2
+import numpy as np
+import pandas as pd
+import skvideo
+import tensorflow as tf
+import tensorflow_datasets as tfds
+
+skvideo.setFFmpegPath(Path(os.path.dirname(os.path.realpath(__file__))) / 'libs/ffmpeg-5.0-amd64-static')
 import skvideo.io
 
 # TODO(first_impressions): Markdown description  that will appear on the catalog page.
