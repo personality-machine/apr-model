@@ -13,7 +13,7 @@ import skvideo
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-skvideo.setFFmpegPath(Path(os.path.dirname(os.path.realpath(__file__))) / 'libs/ffmpeg-5.0-amd64-static')
+skvideo.setFFmpegPath(str(Path(os.path.dirname(os.path.realpath(__file__))) / 'libs/ffmpeg-5.0-amd64-static'))
 import skvideo.io
 
 # TODO(first_impressions): Markdown description  that will appear on the catalog page.
