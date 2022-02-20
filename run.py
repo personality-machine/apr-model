@@ -92,6 +92,51 @@ def train(
         callbacks=[cp_callback, tensorboard_callback]
     )
 
+@cli.command()
+@click.option("--experiment", help="Experiment to run", required=True, type=str)
+@click.option("--ckpt_base", help="Path to base checkpoint / log saving directory (.../experiment)", required=True, type=click.Path())
+@click.option("--ckpt", help="Checkpoint to export", required=True, type=int)
+@click.option("--zip/--no_zip", help="Create a zip archive", default=True)
+@click.option("--saved_model_path", help="Saved model path", required=True, type=click.Path())
+def export(
+    experiment,
+    ckpt_base,
+    ckpt,
+    zip,
+    saved_model_path,
+):
+    """
+    Train the model with specified options and hyperparameters
+    """
+    exp = importlib.import_module(f"experiments.{experiment}.experiment")
+    saved_model_path = Path(saved_model_path)
+
+    zip_path = saved_model_path.parent / f"{saved_model_path.name}.zip"
+    if saved_model_path.is_dir():
+        click.confirm(
+            "Existing directory found:\n"
+            + f"- {saved_model_path}\n"
+            + "Delete?",
+            abort=True,
+        )
+        shutil.rmtree(saved_model_path)
+        zip_path.unlink()
+
+    # Create the model
+    model = exp.model()
+    exp.compile(model)
+
+    # Save the model
+    checkpoint_path = Path(ckpt_base) / experiment / "checkpoints"
+    checkpoint_to_use = max(
+        x for x in set(
+            int(i.name.split(".")[0].split("-")[1]) for i in checkpoint_path.glob("cp-*.ckpt.index")
+        ) if x <= ckpt)
+    model.load_weights(checkpoint_path / f"cp-{checkpoint_to_use:04d}.ckpt")
+    model.save(saved_model_path)
+    if zip:
+        shutil.make_archive(saved_model_path, 'zip', saved_model_path)
+
 if __name__ == "__main__":
     logging.set_verbosity(logging.INFO)
     cli()
