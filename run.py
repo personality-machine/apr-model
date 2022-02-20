@@ -77,8 +77,7 @@ def train(
     checkpoint_path = (exp_base / "checkpoints")
     checkpoint_path.mkdir(parents=True, exist_ok=True)
 
-    checkpoint_name = str(checkpoint_path) + "/cp-{epoch:04d}.ckpt"
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=str(checkpoint_path) + "/cp-{epoch:04d}.ckpt",
                                                     save_weights_only=True,
                                                     verbose=1,
                                                     save_freq=int(save_every * len(ds_train)))
