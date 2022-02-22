@@ -3,10 +3,10 @@
 # === Config ===
 
 experiment="exp_02_20_baseline_resnet"
-venv_dir="/home/elyro2/personality-machine/venv"
-repo_dir="/home/elyro2/personality-machine/apr-model"
-ckpt_dir="/rds/user/elyro2/hpc-work/personality-machine/experiments"
-data_dir="/rds/user/elyro2/hpc-work/personality-machine/tfds"
+venv_dir="/home/${USER}/personality-machine/venv"
+repo_dir="/home/${USER}/personality-machine/apr-model"
+ckpt_dir="/rds/user/${USER}/hpc-work/personality-machine/experiments"
+data_dir="/rds/user/${USER}/hpc-work/personality-machine/tfds"
 
 saved_model_name="saved_model"
 ckpt=1
