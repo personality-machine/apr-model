@@ -6,6 +6,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from pathlib import Path
 import shutil
+import tensorflowjs as tfjs
 
 def load_data(params, data_dir, preprocess_ds):
     (ds_train, ds_val), ds_info = tfds.load(
@@ -98,18 +99,21 @@ def train(
 @click.option("--ckpt", help="Checkpoint to export", required=True, type=int)
 @click.option("--zip/--no_zip", help="Create a zip archive", default=True)
 @click.option("--saved_model_path", help="Saved model path", required=True, type=click.Path())
+@click.option("--to_tfjs/--no_tfjs", help="Export to tfjs format", default=True)
 def export(
     experiment,
     ckpt_base,
     ckpt,
     zip,
     saved_model_path,
+    to_tfjs
 ):
     """
     Train the model with specified options and hyperparameters
     """
     exp = importlib.import_module(f"experiments.{experiment}.experiment")
     saved_model_path = Path(saved_model_path)
+    js_path = saved_model_path.parent / (saved_model_path.name + "_js")
 
     zip_path = saved_model_path.parent / f"{saved_model_path.name}.zip"
     if saved_model_path.is_dir():
@@ -133,9 +137,15 @@ def export(
             int(i.name.split(".")[0].split("-")[1]) for i in checkpoint_path.glob("cp-*.ckpt.index")
         ) if x <= ckpt)
     model.load_weights(checkpoint_path / f"cp-{checkpoint_to_use:04d}.ckpt")
+    
     model.save(saved_model_path)
+    if to_tfjs:
+        tfjs.converters.save_keras_model(model, js_path)
+    
     if zip:
         shutil.make_archive(saved_model_path, 'zip', saved_model_path)
+        if to_tfjs:
+            shutil.make_archive(js_path, 'zip', js_path)
 
 if __name__ == "__main__":
     logging.set_verbosity(logging.INFO)
