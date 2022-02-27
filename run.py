@@ -58,7 +58,7 @@ def train(
     ds_train, ds_val = load_data(
         exp.PARAMS, 
         data_dir, 
-        exp.preprocess_ds if hasattr(exp, preprocess_ds) else lambda image, label: (exp.preprocess_image(image), label)
+        exp.preprocess_ds if hasattr(exp, 'preprocess_ds') else lambda image, label: (exp.preprocess_image(image), label)
     )
     
     exp_base = Path(ckpt_base) / experiment

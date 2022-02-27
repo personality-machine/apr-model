@@ -50,5 +50,5 @@ def compile(model):
 def preprocess_image(image):
     return compose([
         tf.keras.layers.RandomCrop(PARAMS["img_height"], PARAMS["img_height"]),
-        tf.keras.applications.resnet.preprocess_input
+        tf.keras.applications.mobilenet_v2.preprocess_input
     ])(image)
