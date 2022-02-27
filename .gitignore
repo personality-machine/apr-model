@@ -131,3 +131,6 @@ dmypy.json
 notebooks/
 experiments/testing
 saved_model*
+slurm-*.out
+*.swp
+*machine.file*
