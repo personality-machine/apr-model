@@ -2,7 +2,7 @@
 
 # === Config ===
 
-experiment="exp_02_20_baseline_resnet"
+experiment="exp_02_24_resnet_bucketing"
 venv_dir="/home/${USER}/personality-machine/venv"
 repo_dir="/home/${USER}/personality-machine/apr-model"
 ckpt_dir="/rds/user/${USER}/hpc-work/personality-machine/experiments"
