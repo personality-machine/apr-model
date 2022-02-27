@@ -58,6 +58,7 @@ def train(
     """
     Train the model with specified options and hyperparameters
     """
+    exp = importlib.import_module(f"experiments.{experiment}.experiment")
     if enable_wandb:
         wandb.init(project="firstimpressions", entity="personalitymachine")
         wandb.run.name = experiment
@@ -70,7 +71,6 @@ def train(
             "save_every": save_every,
         }
 
-    exp = importlib.import_module(f"experiments.{experiment}.experiment")
     
     ds_train, ds_val = load_data(
         exp.PARAMS, 
