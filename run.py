@@ -8,6 +8,9 @@ from pathlib import Path
 import shutil
 import tensorflowjs as tfjs
 
+import wandb
+from wandb.keras import WandbCallback
+
 def load_data(params, data_dir, preprocess_ds):
     (ds_train, ds_val), ds_info = tfds.load(
         'first_impressions',
@@ -43,16 +46,30 @@ def cli():
 @click.option("--ckpt_base", help="Path to base checkpoint / log saving directory (.../experiment)", required=True, type=click.Path())
 @click.option("--num_epochs", help="Number of epochs to train for", required=True, type=int)
 @click.option("--save_every", help="Number of epochs between saves", required=True, type=float)
+@click.option("--enable_wandb/--disable_wandb", help="Whether or not to log results in WandB", default=True, type=bool)
 def train(
     experiment,
     data_dir,
     ckpt_base,
     num_epochs,
     save_every,
+    enable_wandb,
 ):
     """
     Train the model with specified options and hyperparameters
     """
+    if enable_wandb:
+        wandb.init(project="firstimpressions", entity="personalitymachine")
+        wandb.run.name = experiment
+        wandb.config = {
+            **exp.PARAMS,
+            "experiment": experiment,
+            "data_dir": data_dir,
+            "ckpt_base": ckpt_base,
+            "num_epochs": num_epochs,
+            "save_every": save_every,
+        }
+
     exp = importlib.import_module(f"experiments.{experiment}.experiment")
     
     ds_train, ds_val = load_data(
@@ -91,7 +108,13 @@ def train(
         ds_train,
         epochs=num_epochs,
         validation_data=ds_val,
-        callbacks=[cp_callback, tensorboard_callback]
+        callbacks=[cp_callback, tensorboard_callback, WandbCallback(
+            save_model=True,
+            monitor="val_loss",
+            mode="min",
+            generator=ds_val,
+            input_type="image",
+        )]
     )
 
 @cli.command()
