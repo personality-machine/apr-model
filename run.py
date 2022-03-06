@@ -1,5 +1,6 @@
 import datetime
 import importlib
+from subprocess import call
 import click
 from absl import logging
 import tensorflow as tf
@@ -60,7 +61,7 @@ def train(
     """
     exp = importlib.import_module(f"experiments.{experiment}.experiment")
     if enable_wandb:
-        wandb.init(project="firstimpressions", entity="personalitymachine")
+        wandb.init(project="firstimpressions", entity="personalitymachine", settings=wandb.Settings(start_method="fork"))
         wandb.run.name = experiment
         wandb.config = {
             **exp.PARAMS,
@@ -104,17 +105,20 @@ def train(
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
     # Train the model with the new callback
-    model.fit(
-        ds_train,
-        epochs=num_epochs,
-        validation_data=ds_val,
-        callbacks=[cp_callback, tensorboard_callback, WandbCallback(
+    callbacks = [cp_callback, tensorboard_callback]
+    if enable_wandb:
+        callbacks.append(WandbCallback(
             save_model=True,
             monitor="val_loss",
             mode="min",
             generator=ds_val,
-            input_type="image",
-        )]
+            input_type="image"))
+
+    model.fit(
+        ds_train,
+        epochs=num_epochs,
+        validation_data=ds_val,
+        callbacks=callbacks
     )
 
 @cli.command()

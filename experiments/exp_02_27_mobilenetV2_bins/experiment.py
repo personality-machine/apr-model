@@ -44,11 +44,25 @@ def model():
 
     return tf.keras.Model(inputs, outputs)
 
+def getLoss():
+    return lambda y_true, y_pred: tf.reduce_mean(tf.keras.losses.categorical_crossentropy(y_true,y_pred),axis=-1)
+    # return tf.keras.losses.CategoricalCrossentropy()
+
+def MAE_binned(y_true, y_pred, buckets=40):
+    dist = tfp.distributions.Normal(loc=0.5,scale=0.15)
+    true = dist.quantile(tf.cast(tf.math.argmax(y_true, axis=-1)/40,'float32'))
+    pred = dist.quantile(tf.cast(tf.math.argmax(y_pred, axis=-1)/40,'float32'))
+    result = tf.reshape(tf.math.abs(true - pred),[-1])
+    #print(y_true,y_pred,result)
+    return result
+    #abs_difference = tf.math.abs(true - pred)
+    #return [tf.reduce_mean(abs_difference)]
+
 def compile(model):
     model.compile(
         optimizer=tf.keras.optimizers.Adam(PARAMS["base_learning_rate"]),
-        loss=tf.keras.losses.CategoricalCrossentropy(),
-        metrics=[tf.keras.metrics.MeanAbsoluteError()],
+        loss=getLoss(),
+        metrics=[MAE_binned],
     )
 
 def preprocess_image(image):
