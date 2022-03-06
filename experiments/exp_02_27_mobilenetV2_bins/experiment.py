@@ -4,8 +4,8 @@ import tensorflow_probability as tfp
 from utils import compose
 
 PARAMS = {
-    "base_learning_rate": 0.0001,
-    "batch_size": 128,
+    "base_learning_rate": 0.001,
+    "batch_size": 1024,
     "img_height": 224,
     "img_width": 398,
 }
@@ -48,21 +48,11 @@ def getLoss():
     return lambda y_true, y_pred: tf.reduce_mean(tf.keras.losses.categorical_crossentropy(y_true,y_pred),axis=-1)
     # return tf.keras.losses.CategoricalCrossentropy()
 
-def MAE_binned(y_true, y_pred, buckets=40):
-    dist = tfp.distributions.Normal(loc=0.5,scale=0.15)
-    true = dist.quantile(tf.cast(tf.math.argmax(y_true, axis=-1)/40,'float32'))
-    pred = dist.quantile(tf.cast(tf.math.argmax(y_pred, axis=-1)/40,'float32'))
-    result = tf.reshape(tf.math.abs(true - pred),[-1])
-    #print(y_true,y_pred,result)
-    return result
-    #abs_difference = tf.math.abs(true - pred)
-    #return [tf.reduce_mean(abs_difference)]
-
 def compile(model):
     model.compile(
         optimizer=tf.keras.optimizers.Adam(PARAMS["base_learning_rate"]),
         loss=getLoss(),
-        metrics=[MAE_binned],
+        metrics=[MAE_binned, tf.keras.metrics.CategoricalAccuracy()],
     )
 
 def preprocess_image(image):
@@ -71,9 +61,46 @@ def preprocess_image(image):
         tf.keras.applications.mobilenet_v2.preprocess_input
     ])(image)
 
-def bucket(x,buckets=40):
+def MAE_binned(y_true, y_pred, buckets=40):
+    # y_true, y_pred are [*, 6, buckets]
     dist = tfp.distributions.Normal(loc=0.5,scale=0.15)
-    return tf.one_hot(tf.cast(dist.cdf(tf.cast(x,dtype='float32'))*buckets,dtype='int32'),buckets)
+    lbp, ubp = dist.cdf(0), dist.cdf(1)
+    scaled_quantile = lambda x: (dist.cdf(x) - lbp) / (ubp - lbp)
+
+    true, pred = [
+        scaled_quantile((tf.cast(tf.math.argmax(y, axis=-1), 'float32') + 0.5) / buckets)
+        for y in [y_true, y_pred]
+    ]
+    
+    return tf.math.abs(true - pred)
+    #print(y_true,y_pred,result)
+    #abs_difference = tf.math.abs(true - pred)
+    #return [tf.reduce_mean(abs_difference)]
+
+def bucket(x,buckets=40):
+    """
+    Input
+        x: float tf.Tensor[...dims] in [0,1]
+    Returns: one-hot tf.Tensor[...dims, buckets]
+
+    Buckets: 
+        0: [0,1/buckets)
+        1: [1/buckets, 2/buckets) 
+        ... 
+        buckets-1: [(buckets-1)/buckets, 1]
+    """
+    dist = tfp.distributions.Normal(loc=0.5,scale=0.15)
+
+    lbp, ubp = dist.cdf(0), dist.cdf(1)
+    scaled_cdf = lambda x: (dist.cdf(x) - lbp) / (ubp - lbp)
+
+    return compose([
+        lambda x: tf.cast(x,dtype='float32'),
+        lambda x: scaled_cdf(x) * buckets,
+        lambda x: tf.cast(x,dtype='int32'),
+        lambda x: tf.minimum(x, buckets-1),
+        lambda x: tf.one_hot(x,buckets)
+    ])(x)
 
 def preprocess_ds(image, label):
     return preprocess_image(image), bucket(label)
