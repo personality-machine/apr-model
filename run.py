@@ -111,7 +111,7 @@ def train(
             save_model=True,
             monitor="val_loss",
             mode="min",
-            generator=ds_val,
+            # generator=ds_val,
             input_type="image"))
 
     model.fit(
