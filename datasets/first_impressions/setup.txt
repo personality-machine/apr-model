@@ -1,0 +1,2 @@
+tfds build --config large --data_dir /rds/user/elyro2/hpc-work/personality-machine/tfds-large/ --manual_dir /rds/user/elyro2/hpc-work/personality-machine/first-impressions/ --overwrite
+elyro2@login-e-1
