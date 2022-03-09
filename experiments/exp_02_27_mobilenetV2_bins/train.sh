@@ -12,7 +12,7 @@ experiment="exp_02_27_mobilenetV2_bins"
 venv_dir="/home/${USER}/personality-machine/venv"
 repo_dir="/home/${USER}/personality-machine/apr-model"
 ckpt_dir="/rds/user/${USER}/hpc-work/personality-machine/experiments"
-data_dir="/rds/user/${USER}/hpc-work/personality-machine/tfds"
+data_dir="/rds/user/${USER}/hpc-work/personality-machine/"
 
 num_epochs=500
 save_every=1

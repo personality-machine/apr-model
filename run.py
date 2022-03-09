@@ -1,41 +1,15 @@
 import datetime
 import importlib
-from subprocess import call
 import click
 from absl import logging
 import tensorflow as tf
-import tensorflow_datasets as tfds
 from pathlib import Path
 import shutil
 import tensorflowjs as tfjs
+import datasets.tfds
 
 import wandb
 from wandb.keras import WandbCallback
-
-def load_data(params, data_dir, preprocess_ds):
-    (ds_train, ds_val), ds_info = tfds.load(
-        'first_impressions',
-        split=['train', 'val'],
-        shuffle_files=True,
-        as_supervised=True,
-        with_info=True,
-        data_dir=data_dir,
-    )
-
-    ds_train = ds_train.map(
-        preprocess_ds, num_parallel_calls=tf.data.AUTOTUNE)
-    ds_train = ds_train.cache()
-    ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-    ds_train = ds_train.batch(params["batch_size"])
-    ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
-
-    ds_val = ds_val.map(
-        preprocess_ds, num_parallel_calls=tf.data.AUTOTUNE)
-    ds_val = ds_val.batch(params["batch_size"])
-    ds_val = ds_val.cache()
-    ds_val = ds_val.prefetch(tf.data.AUTOTUNE)
-
-    return (ds_train, ds_val)
 
 @click.group()
 def cli():
@@ -43,7 +17,7 @@ def cli():
 
 @cli.command()
 @click.option("--experiment", help="Experiment to run", required=True, type=str)
-@click.option("--data_dir", help="Path to tfds dir", required=True, type=click.Path())
+@click.option("--data_dir", help="Path to personality-machine dir", required=True, type=click.Path())
 @click.option("--ckpt_base", help="Path to base checkpoint / log saving directory (.../experiment)", required=True, type=click.Path())
 @click.option("--num_epochs", help="Number of epochs to train for", required=True, type=int)
 @click.option("--save_every", help="Number of epochs between saves", required=True, type=float)
@@ -72,8 +46,12 @@ def train(
             "save_every": save_every,
         }
 
-    
-    ds_train, ds_val = load_data(
+    if "load_data" in exp.PARAMS:
+        load_data_fn = exp.PARAMS["load_data"]
+    else:
+        load_data_fn = datasets.tfds.load_data
+
+    ds_train, ds_val = load_data_fn(
         exp.PARAMS, 
         data_dir, 
         exp.preprocess_ds if hasattr(exp, 'preprocess_ds') else lambda image, label: (exp.preprocess_image(image), label)
@@ -100,7 +78,7 @@ def train(
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=str(checkpoint_path) + "/cp-{epoch:04d}.ckpt",
                                                     save_weights_only=True,
                                                     verbose=1,
-                                                    save_freq=int(save_every * len(ds_train)))
+                                                    save_freq='epoch')
     log_dir = str(exp_base / "logs") + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
@@ -116,9 +94,12 @@ def train(
 
     model.fit(
         ds_train,
-        epochs=num_epochs,
+        epochs=500000,
+        steps_per_epoch=100,
         validation_data=ds_val,
-        callbacks=callbacks
+        callbacks=callbacks,
+        use_multiprocessing=True,
+        workers=10,
     )
 
 @cli.command()

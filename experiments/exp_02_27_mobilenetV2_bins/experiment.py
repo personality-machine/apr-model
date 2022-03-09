@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
+import datasets.interleave
 
 from utils import compose
 
@@ -8,6 +9,8 @@ PARAMS = {
     "batch_size": 1024,
     "img_height": 224,
     "img_width": 398,
+    "load_data": datasets.interleave.load_data,
+    "load_buffer": 100,
 }
 
 def model():
